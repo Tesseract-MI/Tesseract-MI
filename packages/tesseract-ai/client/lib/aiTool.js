@@ -1,20 +1,20 @@
 import { cornerstoneTools, cornerstone } from 'meteor/ohif:cornerstone';
-import { getNewContext, draw } from './drawing.js';
 import { OHIF } from 'meteor/ohif:core';
 import { Session } from 'meteor/session';
 import { $ } from 'meteor/jquery';
 import { waitUntilExists } from 'jquery.waituntilexists';
 
-Session.set('opendAiSettings', false);
+const openedAiSettings = false;
 
+// Open AI setting when users chooses the AI Probe for the first time
 $('#aiFiducial').waitUntilExists((index, element) => {
     $(element).click((eve) => {
-        if (!($('.report-btn a:first').hasClass('active')) && !(Session.get('opendAiSettings'))) {
+        if (!($('.report-btn a:first').hasClass('active')) && !(openedAiSettings)) {
             $('.report-btn a:first').trigger('click');
             $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
                 $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
             });
-            Session.set('opendAiSettings', true);
+            openedAiSettings = true;
         } else {
             $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
                 $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
@@ -22,6 +22,18 @@ $('#aiFiducial').waitUntilExists((index, element) => {
         }
     });
 });
+
+function draw (context, fn) {
+  context.save();
+  fn(context);
+  context.restore();
+}
+
+function getNewContext (canvas) {
+  const context = canvas.getContext('2d');
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  return context;
+}
 
 const toolType = 'aiFiducial';
 

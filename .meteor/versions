@@ -109,7 +109,7 @@ ohif:user-management@0.0.1
 ohif:viewerbase@0.0.1
 ohif:wadoproxy@0.0.1
 ordered-dict@1.0.9
-pirads:ai@1.0.0
+tesseract:ai@1.0.0
 pirads:core@1.0.0
 promise@0.10.0
 raix:eventemitter@0.1.3

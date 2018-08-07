@@ -42,7 +42,7 @@ ohif:dicom-services
 ohif:hanging-protocols
 ohif:metadata
 pirads:core
-pirads:ai
+tesseract:ai
 
 clinical:active-entry
 clinical:theming

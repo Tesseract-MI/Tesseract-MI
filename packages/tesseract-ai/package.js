@@ -1,6 +1,6 @@
 Package.describe({
-    name: 'pirads:ai',
-    summary: 'AI tool for PIRADS.',
+    name: 'tesseract:ai',
+    summary: 'AI tool for OHIF viewer.',
     version: '1.0.0'
 });
 
