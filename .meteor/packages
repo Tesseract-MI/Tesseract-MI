@@ -43,6 +43,7 @@ ohif:hanging-protocols
 ohif:metadata
 pirads:core
 tesseract:ai
+tesseract:fiducial
 
 clinical:active-entry
 clinical:theming

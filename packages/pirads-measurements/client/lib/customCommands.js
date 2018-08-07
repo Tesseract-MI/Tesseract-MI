@@ -7,14 +7,13 @@ import { Session } from 'meteor/session';
 
 fiducialsCollection = new Mongo.Collection('fiducialsCollection', {connection: null});
 const probeSynchronizer = new cornerstoneTools.Synchronizer('cornerstonenewimage', cornerstoneTools.stackImagePositionSynchronizer);
-const toolsToSync = ['probe', 'aiFiducial'];
+const toolsToSync = ['fiducial', 'aiFiducial'];
 let fiducialCounter = {};
 
 
 function getPatientPoint(imagePoint, element) {
     const image = cornerstone.getEnabledElement(element).image;
     const imagePlane = cornerstone.metaData.get('imagePlaneModule', image.imageId);
-
     const result = cornerstoneTools.imagePointToPatientPoint(imagePoint, imagePlane);
 
     Session.set('currentFidLps', result);
@@ -26,8 +25,9 @@ function getPatientPoint(imagePoint, element) {
 function getImagePoint(patientPoint, element) {
     const image = cornerstone.getEnabledElement(element).image;
     const imagePlane = cornerstone.metaData.get('imagePlaneModule', image.imageId);
+    const result = cornerstoneTools.projectPatientPointToImagePlane(patientPoint, imagePlane);
 
-    return cornerstoneTools.projectPatientPointToImagePlane(patientPoint, imagePlane);
+    return result;
 }
 
 function isInBoundary(element, coords) {
@@ -35,66 +35,6 @@ function isInBoundary(element, coords) {
     const width = image.width;
     const height = image.height;
     return 0 <= coords.x && coords.x <= width && coords.y <= height && 0 <= coords.y;
-}
-
-function drawId(e, toolType) {
-  const eventData = e.detail;
-
-  // If we have no toolData for this element, return immediately as there is nothing to do
-  const toolData = cornerstoneTools.getToolState(e.currentTarget, toolType);
-
-  if (!toolData) {
-    return;
-  }
-
-  // We have tool data for this element - iterate over each one and draw it
-  const context = eventData.canvasContext.canvas.getContext('2d');
-
-  context.setTransform(1, 0, 0, 1, 0, 0);
-
-  const font = cornerstoneTools.textStyle.getFont();
-  const fontHeight = cornerstoneTools.textStyle.getFontSize();
-
-  for (let i = 0; i < toolData.data.length; i++) {
-    context.save();
-    const data = toolData.data[i];
-
-    if (data.visible === false) {
-      continue;
-    }
-
-    const color = cornerstoneTools.toolColors.getColorIfActive(data);
-
-    const x = Math.round(data.handles.end.x);
-    const y = Math.round(data.handles.end.y);
-    let storedPixels;
-    let text;
-
-    if (!data.hasOwnProperty('server')) {
-      text = 'fid ' + data.id;
-    }
-    else {
-      const id = data.f_id;
-      text = (data.ClinSig) ? 'Clinically Significant (CSPC-' + id + ')' : 'Clinically Insignificant (CIPC-' + id + ')';
-    }
-
-    if (x < 0 || y < 0 || x >= eventData.image.columns || y >= eventData.image.rows) {
-      return;
-    }
-
-    const coords = {
-      // Translate the x/y away from the cursor
-      x: data.handles.end.x + 3,
-      y: data.handles.end.y - 3
-    };
-    const textCoords = cornerstone.pixelToCanvas(eventData.element, coords);
-
-    context.font = font;
-    context.fillStyle = color;
-
-    cornerstoneTools.drawTextBox(context, text, textCoords.x, textCoords.y - fontHeight - 5, color);
-    context.restore();
-  }
 }
 
 // TODO: clean and comment for all the functions
@@ -288,10 +228,6 @@ $('.toolbarSectionTools').waitUntilExists((index, element) => {
         if (toolsToSync.includes(activeTool)) {
             $('.imageViewerViewport').each((index, ele) => {
                 // TODO: not a good idea to wait till we scroll, see if there is a better way!
-                $(ele).on('cornerstoneimagerendered', (e) => {
-                    drawId(e.originalEvent, activeTool);
-                });
-
                 probeSynchronizer.add(ele);
             });
 

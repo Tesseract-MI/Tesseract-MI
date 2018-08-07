@@ -1,28 +1,5 @@
 import { cornerstoneTools, cornerstone } from 'meteor/ohif:cornerstone';
-import { OHIF } from 'meteor/ohif:core';
 import { Session } from 'meteor/session';
-import { $ } from 'meteor/jquery';
-import { waitUntilExists } from 'jquery.waituntilexists';
-
-const toolType = 'aiFiducial';
-const openedAiSettings = false;
-
-// Open AI setting when users chooses the AI Probe for the first time
-$('#aiFiducial').waitUntilExists((index, element) => {
-    $(element).click((eve) => {
-        if (!($('.report-btn a:first').hasClass('active')) && !(openedAiSettings)) {
-            $('.report-btn a:first').trigger('click');
-            $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
-                $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
-            });
-            openedAiSettings = true;
-        } else {
-            $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
-                $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
-            });
-        }
-    });
-});
 
 function draw (context, fn) {
   context.save();
@@ -36,40 +13,6 @@ function getNewContext (canvas) {
   return context;
 }
 
-const createDialog = (eventData, measurementData) => {
-
-    const nearbyToolData = {};
-    const modelWithZone = Session.get('modelWithZone');
-    const position = {
-        x: eventData.event.clientX+155,
-        y: eventData.event.clientY+140
-    }
-    nearbyToolData.toolType = toolType;
-    nearbyToolData.tool = measurementData;
-
-    if (modelWithZone) {
-      position = {
-          x: eventData.event.clientX+155,
-          y: eventData.event.clientY+190
-      }
-    }
-
-    const dialogSettings = {
-        removeCloseButton: true,
-        message: 'Do you want to keep this finding?',
-        cancelLabel: 'No',
-        confirmLabel: 'Yes',
-        confirmClass: 'btn-success',
-        cancelClass: 'btn-danger',
-        dialogClass: 'modal-sm',
-        position: position
-    };
-
-    Session.set('nearbyToolData', nearbyToolData);
-
-    OHIF.ui.showDialog('dialogAi', dialogSettings);
-};
-
 function increaseFidByOne() {
   const fid = Session.get('fid');
 
@@ -79,6 +22,8 @@ function increaseFidByOne() {
     Session.set('fid', 1);
   }
 }
+
+const toolType = 'fiducial';
 
 // /////// BEGIN ACTIVE TOOL ///////
 function createNewMeasurement (mouseEventData) {
@@ -103,7 +48,6 @@ function createNewMeasurement (mouseEventData) {
     }
   };
 
-  createDialog(mouseEventData, measurementData);
 
   return measurementData;
 }
@@ -193,14 +137,14 @@ function onImageRendered (e) {
 // /////// END IMAGE RENDERING ///////
 
 // Module exports
-cornerstoneTools.aiFiducial = cornerstoneTools.mouseButtonTool({
+cornerstoneTools.fiducial = cornerstoneTools.mouseButtonTool({
   createNewMeasurement,
   onImageRendered,
   pointNearTool,
   toolType
 });
 
-cornerstoneTools.aiFiducialTouch = cornerstoneTools.touchTool({
+cornerstoneTools.fiducialTouch = cornerstoneTools.touchTool({
   createNewMeasurement,
   onImageRendered,
   pointNearTool,

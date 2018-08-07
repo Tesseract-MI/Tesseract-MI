@@ -81,9 +81,9 @@ export const toolManager = {
             mouse: cornerstoneTools.dragProbe,
             touch: cornerstoneTools.dragProbeTouch
         });
-        toolManager.addTool('probe', {
-            mouse: cornerstoneTools.probe,
-            touch: cornerstoneTools.probeTouch
+        toolManager.addTool('fiducial', {
+            mouse: cornerstoneTools.fiducial,
+            touch: cornerstoneTools.fiducialTouch
         });
         toolManager.addTool('aiFiducial', {
             mouse: cornerstoneTools.aiFiducial,
