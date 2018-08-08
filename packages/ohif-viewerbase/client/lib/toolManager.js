@@ -597,6 +597,7 @@ export const toolManager = {
 
         // Enable reactivity
         Session.set('ToolManagerActiveToolUpdated', Random.id());
+        $('body').trigger($.Event('syncViewports'));
     },
 
     getNearbyToolData(element, coords, toolTypes) {

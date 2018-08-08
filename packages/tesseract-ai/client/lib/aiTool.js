@@ -30,6 +30,11 @@ function draw (context, fn) {
   context.restore();
 }
 
+function getFidKey() {
+  const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'].toString();
+  return 'fid.' + studyInstanceUid;
+}
+
 function getNewContext (canvas) {
   const context = canvas.getContext('2d');
   context.setTransform(1, 0, 0, 1, 0, 0);
@@ -71,12 +76,12 @@ const createDialog = (eventData, measurementData) => {
 };
 
 function increaseFidByOne() {
-  const fid = Session.get('fid');
+  const fid = Session.get(getFidKey());
 
   if (fid) {
-    Session.set('fid', fid+1);
+    Session.set(getFidKey(), fid+1);
   } else {
-    Session.set('fid', 1);
+    Session.set(getFidKey(), 1);
   }
 }
 
@@ -84,14 +89,14 @@ function increaseFidByOne() {
 function createNewMeasurement (mouseEventData) {
 
   increaseFidByOne();
-  const fid = Session.get('fid');
+  const fid = Session.get(getFidKey());
 
   // Create the measurement data for this tool with the end handle activated
   const measurementData = {
     toolType: toolType,
-    fid: fid,
+    id: fid,
     visible: true,
-    active: true,
+    active: false,
     color: undefined,
     handles: {
       end: {
@@ -170,7 +175,7 @@ function onImageRendered (e) {
 
           // Draw text
           // text = `${x}, ${y}`;
-          text = `fid ${data.fid}`;
+          text = `finding ${data.id}`;
           str = `SP: ${sp} MO: ${parseFloat(mo.toFixed(3))}`;
           if (suv) {
             str += ` SUV: ${parseFloat(suv.toFixed(3))}`;

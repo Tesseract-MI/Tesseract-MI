@@ -4,10 +4,6 @@ Package.describe({
     version: '1.0.0'
 });
 
-Npm.depends({
-    'jquery.waituntilexists': '1.0.0'
-});
-
 Package.onUse(function(api) {
     api.versionsFrom('1.4');
 

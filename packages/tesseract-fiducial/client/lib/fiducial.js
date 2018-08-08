@@ -1,5 +1,13 @@
 import { cornerstoneTools, cornerstone } from 'meteor/ohif:cornerstone';
+import { OHIF } from 'meteor/ohif:core';
 import { Session } from 'meteor/session';
+
+const toolType = 'fiducial';
+
+function getFidKey() {
+  const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'].toString();
+  return 'fid.' + studyInstanceUid;
+}
 
 function draw (context, fn) {
   context.save();
@@ -14,29 +22,27 @@ function getNewContext (canvas) {
 }
 
 function increaseFidByOne() {
-  const fid = Session.get('fid');
+  const fid = Session.get(getFidKey());
 
   if (fid) {
-    Session.set('fid', fid+1);
+    Session.set(getFidKey(), fid+1);
   } else {
-    Session.set('fid', 1);
+    Session.set(getFidKey(), 1);
   }
 }
-
-const toolType = 'fiducial';
 
 // /////// BEGIN ACTIVE TOOL ///////
 function createNewMeasurement (mouseEventData) {
 
   increaseFidByOne();
-  const fid = Session.get('fid');
+  const fid = Session.get(getFidKey());
 
   // Create the measurement data for this tool with the end handle activated
   const measurementData = {
     toolType: toolType,
-    fid: fid,
+    id: fid,
     visible: true,
-    active: true,
+    active: false,
     color: undefined,
     handles: {
       end: {
@@ -114,7 +120,7 @@ function onImageRendered (e) {
 
           // Draw text
           // text = `${x}, ${y}`;
-          text = `fid ${data.fid}`;
+          text = `finding ${data.id}`;
           str = `SP: ${sp} MO: ${parseFloat(mo.toFixed(3))}`;
           if (suv) {
             str += ` SUV: ${parseFloat(suv.toFixed(3))}`;
@@ -123,8 +129,8 @@ function onImageRendered (e) {
 
         const coords = {
           // Translate the x/y away from the cursor
-          x: data.handles.end.x + 3,
-          y: data.handles.end.y - 3
+          x: data.handles.end.x,
+          y: data.handles.end.y
         };
         const textCoords = cornerstone.pixelToCanvas(eventData.element, coords);
 

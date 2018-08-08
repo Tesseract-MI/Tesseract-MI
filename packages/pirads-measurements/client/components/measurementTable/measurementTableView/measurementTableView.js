@@ -106,7 +106,7 @@ async function displayFiducials(instance) {
               await scroll();
               await wait((delay/2) * (index + 1));
               $(ele).off('cornerstonetoolsmeasurementadded');
-              cornerstoneTools.addToolState(ele, 'probe', measurementData);
+              cornerstoneTools.addToolState(ele, 'fiducial', measurementData);
               cornerstone.updateImage(ele);
               bindToMeasurementAdded(ele);
           });
