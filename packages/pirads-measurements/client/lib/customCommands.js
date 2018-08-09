@@ -4,7 +4,6 @@ import { cornerstoneTools, cornerstone } from 'meteor/ohif:cornerstone';
 import { $ } from 'meteor/jquery';
 import { Session } from 'meteor/session';
 
-
 fiducialsCollection = new Mongo.Collection('fiducialsCollection', { connection: null });
 const probeSynchronizer = new cornerstoneTools.Synchronizer('cornerstonenewimage', cornerstoneTools.stackImagePositionSynchronizer);
 const toolsToSync = ['fiducial', 'aiFiducial'];
@@ -14,7 +13,7 @@ function getPatientPoint(imagePoint, element) {
   const imagePlane = cornerstone.metaData.get('imagePlaneModule', image.imageId);
   const result = cornerstoneTools.imagePointToPatientPoint(imagePoint, imagePlane);
 
-  Session.set('currentFidLps', result);
+  Session.set('currentFidPatientPoint', result);
 
   return result;
 }
@@ -80,25 +79,16 @@ function addFiducial(element, measurementData, toolType) {
     }
   });
 
-  // $('.imageViewerViewport').each((index, ele) => {
-  //
-  //   if (measurementData.hasOwnProperty('server')) {
-  //     id = 'server.'.concat(measurementData.f_id);
-  //   }
-  // });
-
-  if (!measurementData.hasOwnProperty('server')) {
-    Session.set('lastFidId', measurementData.id);
-    let fiducial = {
-      'toolType': measurementData.toolType,
-      'id': measurementData.id,
-      'studyInstanceUid': studyInstanceUid,
-      'imageIds': imageIds,
-      'patientPoint': patientPoint
-    }
-
-    fiducialsCollection.insert(fiducial);
+  Session.set('lastFidId', measurementData.id);
+  let fiducial = {
+    'toolType': measurementData.toolType,
+    'id': measurementData.id,
+    'studyInstanceUid': studyInstanceUid,
+    'imageIds': imageIds,
+    'patientPoint': patientPoint
   }
+
+  fiducialsCollection.insert(fiducial);
 }
 
 
@@ -116,12 +106,7 @@ function descriptionMap(seriesDescription) {
 
 
 function removeFiducial(element, measurementData, toolType) {
-  if (measurementData.hasOwnProperty('server')) {
-    $(element).off('cornerstonetoolsmeasurementadded');
-    cornerstoneTools.addToolState(element, toolType, measurementData);
-    cornerstone.updateImage(element);
-    bindToMeasurementAdded(element);
-  } else if (measurementData.hasOwnProperty('id')) {
+  if (measurementData.hasOwnProperty('id')) {
     $('.imageViewerViewport').each((index, ele) => {
       const toolData = cornerstoneTools.getElementToolStateManager(ele).get(ele, toolType);
 
@@ -143,49 +128,37 @@ function removeFiducial(element, measurementData, toolType) {
 function modifyFiducial(element, measurementData, toolType) {
   const patientPoint = getPatientPoint(measurementData.handles.end, element);
 
-  if (measurementData.hasOwnProperty('server')) {
-    const imageId = cornerstone.getEnabledElement(element).image.imageId;
-    const seriesDescription = cornerstone.metaData.get('series', imageId)['seriesDescription'];
-    const patientName = OHIF.viewer.Studies.all()[0]['patientName'];
-    const pos = Fiducials.findOne({
-      ProxID: patientName,
-      fid: measurementData.f_id
-    })[descriptionMap(seriesDescription)];
-    measurementData.handles.end.x = pos.x;
-    measurementData.handles.end.y = pos.y;
-  } else {
-    $('.imageViewerViewport').each((index, ele) => {
-      if (ele !== element) {
-        const toolData = cornerstoneTools.getElementToolStateManager(ele).get(ele, toolType);
+  $('.imageViewerViewport').each((index, ele) => {
+    if (ele !== element) {
+      const toolData = cornerstoneTools.getElementToolStateManager(ele).get(ele, toolType);
 
-        for (let i = 0; i < toolData.data.length; i++) {
-          if (toolData.data[i].id === measurementData.id) {
-            let elementSpecificMeasurementData = toolData.data[i];
-            const imagePoint = getImagePoint(patientPoint, ele);
-            elementSpecificMeasurementData.handles.end.x = imagePoint.x;
-            elementSpecificMeasurementData.handles.end.y = imagePoint.y;
-            if (isInBoundary(ele, elementSpecificMeasurementData.handles.end)) {
-              elementSpecificMeasurementData.visible = true;
-            } else {
-              elementSpecificMeasurementData.visible = false;
-            }
+      for (let i = 0; i < toolData.data.length; i++) {
+        if (toolData.data[i].id === measurementData.id) {
+          let elementSpecificMeasurementData = toolData.data[i];
+          const imagePoint = getImagePoint(patientPoint, ele);
+          elementSpecificMeasurementData.handles.end.x = imagePoint.x;
+          elementSpecificMeasurementData.handles.end.y = imagePoint.y;
+          if (isInBoundary(ele, elementSpecificMeasurementData.handles.end)) {
+            elementSpecificMeasurementData.visible = true;
+          } else {
+            elementSpecificMeasurementData.visible = false;
           }
         }
-
-        cornerstone.updateImage(ele);
       }
-    });
 
-    let fiducial = {
-      'patientPoint': patientPoint
+      cornerstone.updateImage(ele);
     }
+  });
 
-    fiducialsCollection.update({
-      'id': measurementData.id
-    }, {
-      $set: fiducial
-    });
+  let fiducial = {
+    'patientPoint': patientPoint
   }
+
+  fiducialsCollection.update({
+    'id': measurementData.id
+  }, {
+    $set: fiducial
+  });
 }
 
 
@@ -264,7 +237,3 @@ $('body').on('syncViewports', (event) => {
     probeSynchronizer.destroy();
   }
 });
-
-export {
-  bindToMeasurementAdded
-};

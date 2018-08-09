@@ -1,13 +1,6 @@
 import { cornerstoneTools, cornerstone } from 'meteor/ohif:cornerstone';
-import { OHIF } from 'meteor/ohif:core';
-import { Session } from 'meteor/session';
 
-const toolType = 'fiducial';
-
-function getFidKey() {
-  const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'].toString();
-  return 'fid.' + studyInstanceUid;
-}
+const toolType = 'serverProbe';
 
 function draw (context, fn) {
   context.save();
@@ -21,26 +14,14 @@ function getNewContext (canvas) {
   return context;
 }
 
-function increaseFidByOne() {
-  const fid = Session.get(getFidKey());
-
-  if (fid) {
-    Session.set(getFidKey(), fid+1);
-  } else {
-    Session.set(getFidKey(), 1);
-  }
-}
-
 // /////// BEGIN ACTIVE TOOL ///////
 function createNewMeasurement (mouseEventData) {
 
-  increaseFidByOne();
-  const fid = Session.get(getFidKey());
-
   // Create the measurement data for this tool with the end handle activated
   const measurementData = {
+    server: true,
     toolType: toolType,
-    id: fid,
+    id: 1,
     visible: true,
     active: false,
     color: undefined,
@@ -54,20 +35,15 @@ function createNewMeasurement (mouseEventData) {
     }
   };
 
+
   return measurementData;
 }
 // /////// END ACTIVE TOOL ///////
 
 // /////// BEGIN IMAGE RENDERING ///////
 function pointNearTool (element, data, coords) {
-  if (data.visible === false) {
-    return false;
-  }
-
-  const endCanvas = cornerstone.pixelToCanvas(element, data.handles.end);
-
-
-  return cornerstoneMath.point.distance(endCanvas, coords) < 5;
+  cornerstoneTools.serverProbe.enable(element);
+  return false;
 }
 
 function onImageRendered (e) {
@@ -142,14 +118,14 @@ function onImageRendered (e) {
 // /////// END IMAGE RENDERING ///////
 
 // Module exports
-cornerstoneTools.fiducial = cornerstoneTools.mouseButtonTool({
+cornerstoneTools.serverProbe = cornerstoneTools.mouseButtonTool({
   createNewMeasurement,
   onImageRendered,
   pointNearTool,
   toolType
 });
 
-cornerstoneTools.fiducialTouch = cornerstoneTools.touchTool({
+cornerstoneTools.serverProbeTouch = cornerstoneTools.touchTool({
   createNewMeasurement,
   onImageRendered,
   pointNearTool,

@@ -1,41 +1,19 @@
 import { Meteor } from 'meteor/meteor';
 import { Template } from 'meteor/templating';
-import { Tracker } from 'meteor/tracker';
 import { ReactiveVar } from 'meteor/reactive-var';
-import { _ } from 'meteor/underscore';
 import { OHIF } from 'meteor/ohif:core';
 import { cornerstoneTools } from 'meteor/ohif:cornerstone';
 import { $ } from 'meteor/jquery';
 import { Mongo } from 'meteor/mongo';
 import { Session } from 'meteor/session';
-import { bindToMeasurementAdded } from '../../../lib/customCommands.js'
+import '../../../lib/customCommands.js'
 
 AiPredictions = new Mongo.Collection('aiPredictions', {connection: null});
+fiducialsCollection = new Mongo.Collection('fiducialsCollection', { connection: null });
 Fiducials = new Mongo.Collection('fiducials');
 UserData = new Mongo.Collection('user_data');
 
-function getImageId() {
-  var closest;
-  imageIds.forEach(function(imageId) {
-    var imagePlane = cornerstone.metaData.get('imagePlaneModule', imageId);
-    var imgPosZ = imagePlane.imagePositionPatient[2];
-    var distance = Math.abs(imgPosZ - imagePositionZ);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closest = imageId;
-    }
-  });
-
-  return closest;
-}
-
-function wait(ms) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve('resolved');
-    }, ms);
-  });
-}
+const delay = 1000;
 
 function descriptionMap(seriesDescription) {
     if (seriesDescription.includes('t2_tse_tra')) {
@@ -52,12 +30,36 @@ function descriptionMap(seriesDescription) {
     }
 }
 
-async function displayFiducials(instance) {
-  const patientName = instance.data.studies[0].patientName;
-  const fiducials = Fiducials.find({ ProxID: patientName }).fetch();
-  const ClinSigCounter = fiducials.filter(v => v.ClinSig).length;
-  const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
-  const delay = 2000;
+function isKtrans(seriesDescription) {
+    return descriptionMap(seriesDescription) === 'ktrans';
+}
+
+function addServerProbe(ele, val, imagePoint, seriesDescription) {
+    const ClinSigString = (val.ClinSig) ? '(CSPC-' + val.fid + ')' : '(CIPC-' + val.fid + ')';
+    const measurementData = {
+      'id': val.fid + ' ' + ClinSigString,
+      'ClinSig': val.ClinSig,
+      'server': true,
+      'visible': true,
+      'active': true,
+      'color': (val.ClinSig) ? '#ee6002' : '#90ee02',
+      'invalidated': true,
+      'handles': {
+        'end': {
+          'active': true,
+          'highlight': true,
+          'x': imagePoint.x,
+          'y': imagePoint.y
+        }
+      }
+    };
+    OHIF.viewerbase.toolManager.setActiveToolForElement('serverProbe', ele);
+    cornerstoneTools.addToolState(ele, 'serverProbe', measurementData);
+    cornerstone.updateImage(ele);
+}
+
+function displayFiducials(instance) {
+  const fiducials = Fiducials.find({ ProxID: instance.data.studies[0].patientName }).fetch();
 
   if (!(fiducials.length)) {
       $('#feedback-section').append('<p class="text-bold text-center">No result available for this patient.</p>');
@@ -65,89 +67,66 @@ async function displayFiducials(instance) {
   }
 
   if ('pos' in fiducials[0]) {
-      $('#probe').trigger("click");
-      await wait(1);
-
       $('.imageViewerViewport').each((ind, ele) => {
           const imageId = cornerstone.getEnabledElement(ele).image.imageId;
           const seriesDescription = cornerstone.metaData.get('series', imageId)['seriesDescription'];
-          fiducials.forEach(async (val, index) => {
-              const imagePoint = val[descriptionMap(seriesDescription)];
-              let imagaIndex = cornerstone.metaData.get('series', imageId).numImages - imagePoint.z - 1;
-              if (descriptionMap(seriesDescription) === 'ktrans') {
-                  imagaIndex = imagePoint.z;
-              }
-              function scroll() {
-                return new Promise(resolve => {
-                  setTimeout(() => {
-                    cornerstoneTools.scrollToIndex(ele, imagaIndex);
-                    resolve('resolved');
-                  }, delay * (index + 1));
-                });
-              }
 
-              const measurementData = {
-                'f_id': val.fid,
-                'ClinSig': val.ClinSig,
-                'server': true,
-                'visible': true,
-                'active': true,
-                'color': (val.ClinSig) ? '#ee6002' : '#90ee02',
-                'invalidated': true,
-                'handles': {
-                  'end': {
-                    'active': true,
-                    'highlight': true,
-                    'x': imagePoint.x,
-                    'y': imagePoint.y
-                  }
-                }
-              };
-              await scroll();
-              await wait((delay/2) * (index + 1));
-              $(ele).off('cornerstonetoolsmeasurementadded');
-              cornerstoneTools.addToolState(ele, 'fiducial', measurementData);
-              cornerstone.updateImage(ele);
-              bindToMeasurementAdded(ele);
+          fiducials.forEach((val, index) => {
+              const imagePoint = val[descriptionMap(seriesDescription)];
+              const imageIndex = isKtrans(seriesDescription) ? imagePoint.z : cornerstone.metaData.get('series', imageId).numImages - imagePoint.z - 1;
+
+              setTimeout(() => {
+                $(ele).one('cornerstonenewimage', () => {
+                    addServerProbe(ele, val, imagePoint, seriesDescription);
+                });
+                cornerstoneTools.scrollToIndex(ele, imageIndex);
+              }, delay * (index + 1));
           });
       });
   }
 
-  $('#feedback-section').html('<br><br><br><br><br><br><br><p class="text-bold text-center">Fetching data from the server...</p>')
-
-  setTimeout(() => {
-    $('#feedback-section').html('<br><br><br><br><br><br><br><p class="text-bold text-center">Adding the true results to the views...</p>')
-  }, delay);
-
-  setTimeout(() => {
-    $('#feedback-section').html('<br><br><br><br><br><br><br><p class="text-bold text-center">Calculating distances...</p>')
-  }, (delay * (fiducials.length)) + delay);
-
-  setTimeout(() => {
-    $('#feedback-section').html('<p class="text-bold">Annotations:</p><p>Expert radiologist indicated <span class="text-color">' +
-    fiducials.length.toString().concat((fiducials.length === 1) ? '</span> suspicious area ' : '</span> suspicious areas ') +
-    'for this patient.' +
-    '</p><br>' +
-    '<p class="text-bold">Procedure:</p><p>The patient underwent MR-guidance biopsies.</p><br>' +
-    '<p class="text-bold">Biopsy results:</p><p><span class="text-color">'.concat(
-      ClinSigCounter,
-      '</span> clinical significant',
-      (ClinSigCounter === 1) ? ' finding ' : ' findings ',
-      '(Gleason score 7 or higher) ',
-      (ClinSigCounter <= 1) ? 'was ' : 'were ',
-      'reported by pathology.'
-    )
-     +
-    '</p><br>'.concat((!('pos' in fiducials[0])) ? '' :
-    '<p class="text-bold">Analysis of your findings:</p>'.concat('<p>'.concat(findingsAnalysis(fiducials, studyInstanceUid, true)), '</p>'))
-    );
-  }, (delay * (fiducials.length)) + (2 * delay));
-
   $('#wwwc').trigger("click");
 }
 
-function findingsAnalysis(fiducials, studyInstanceUid, html = false) {
+function displayResult(instance) {
+    const fiducials = Fiducials.find({ ProxID: instance.data.studies[0].patientName }).fetch();
+    const ClinSigCounter = fiducials.filter(v => v.ClinSig).length;
+    const htmlLineBreak = '<br><br><br><br><br><br><br>'
 
+    $('#feedback-section').html(htmlLineBreak + '<p class="text-bold text-center">Fetching data from the server...</p>')
+
+    setTimeout(() => {
+      $('#feedback-section').html(htmlLineBreak + '<p class="text-bold text-center">Adding the true results to the views...</p>')
+    }, delay);
+
+    setTimeout(() => {
+      $('#feedback-section').html(htmlLineBreak + '<p class="text-bold text-center">Calculating distances...</p>')
+    }, (delay * (fiducials.length)) + delay);
+
+    setTimeout(() => {
+      $('#feedback-section').html(''.concat(
+          '<p class="text-bold">Annotations:</p><p>Expert radiologist indicated <span class="text-color">',
+          fiducials.length.toString(),
+          (fiducials.length === 1) ? '</span> suspicious area ' : '</span> suspicious areas ',
+          'for this patient.',
+          '</p><br>',
+          '<p class="text-bold">Procedure:</p><p>The patient underwent MR-guidance biopsies.</p><br>',
+          '<p class="text-bold">Biopsy results:</p><p><span class="text-color">',
+          ClinSigCounter,
+          '</span> clinical significant',
+          (ClinSigCounter === 1) ? ' finding ' : ' findings ',
+          '(Gleason score 7 or higher) ',
+          (ClinSigCounter <= 1) ? 'was ' : 'were ',
+          'reported by pathology.',
+          '</p><br>',
+          (!('pos' in fiducials[0])) ? '' : '<p class="text-bold">Analysis of your findings:</p>',
+          findingsAnalysis(fiducials, true))
+      );
+    }, (delay * (fiducials.length)) + (2 * delay));
+}
+
+function findingsAnalysis(fiducials, html = false) {
+  const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
   let str = '';
   let dict = {};
 
@@ -166,14 +145,16 @@ function findingsAnalysis(fiducials, studyInstanceUid, html = false) {
         }
     });
     if (f_id) {
+      const serverProbeColor = (val.ClinSig) ? 'red' : 'green';
       tempStr = ''.concat(
         html ? '<p>' : '',
         html ? '<span class="text-color">' : '',
-        'fid '+ f_id ,
+        'finding '+ f_id,
         html ? '</span>' : '',
         ' is the closest to ',
-        html ? '<span class="text-color">' : '',
-        (val.ClinSig) ? 'CSPC-' + val.fid : 'CIPC-' + val.fid,
+        html ? '<span class="text-color-' + serverProbeColor + '">' : '',
+        'finding '+ val.fid,
+        (val.ClinSig) ? ' CSPC-' + val.fid : ' CIPC-' + val.fid,
         html ? '</span>' : '',
         ' with ',
         html ? '<span class="text-color">' : '',
@@ -224,8 +205,7 @@ function makeModelInfoTable() {
 }
 
 function saveUserData(instance) {
-    const patientName = instance.data.studies[0].patientName;
-    const fiducials = Fiducials.find({ ProxID: patientName }).fetch();
+    const fiducials = Fiducials.find({ ProxID: instance.data.studies[0].patientName }).fetch();
     const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
 
     fiducialsCollection.find({'studyInstanceUid': studyInstanceUid}).fetch().forEach((value) => {
@@ -258,14 +238,14 @@ function saveUserData(instance) {
 }
 
 function checkLocations() {
-    let flag = true;
-    $('.location-data').get().forEach((element) => {
-        if (element.innerHTML === '-') {
-            flag = false;
-            return;
-        }
-    });
-    return flag;
+  let flag = true;
+  $('.location-data').get().forEach((element) => {
+      if (element.innerHTML === '-') {
+          flag = false;
+          return;
+      }
+  });
+  return flag;
 }
 
 Template.measurementTableView.onCreated(() => {
@@ -281,6 +261,7 @@ Template.measurementTableView.onCreated(() => {
   instance.showSnackbar = new ReactiveVar(true);
   Meteor.subscribe('fiducials.public');
   Meteor.subscribe('user_data.public');
+  Meteor.subscribe('fiducialsCollection');
 });
 
 
@@ -296,24 +277,24 @@ Template.measurementTableView.onRendered(() => {
       instance.aiModelsActive.set(false);
   });
 
-  $.ajax({url: "https://api.github.com/repos/ProstateWebViewer/p-cad/contents/models", success: function(result) {
-      let nameArr = [];
-      let modelsInfoDict = {};
-      let url = '';
-      result.forEach((val) => {
-          if (val.type === 'dir') {
-            nameArr.push(val.name);
-            url = "https://raw.githubusercontent.com/ProstateWebViewer/p-cad/master/models/" + val.name + "/info.json"
-            $.ajax({url: url, success: function(res) {
-                modelsInfoDict[val.name] = JSON.parse(res);
-                instance.aiModelsInfo.set(modelsInfoDict);
-            }});
-          }
-      });
-      instance.aiModelsName.set(nameArr);
-      instance.selectedModel.set(nameArr[0]);
-      Session.set('selectedModel', nameArr[0]);
-  }});
+  // $.ajax({url: "https://api.github.com/repos/ProstateWebViewer/p-cad/contents/models", success: function(result) {
+  //     let nameArr = [];
+  //     let modelsInfoDict = {};
+  //     let url = '';
+  //     result.forEach((val) => {
+  //         if (val.type === 'dir') {
+  //           nameArr.push(val.name);
+  //           url = "https://raw.githubusercontent.com/ProstateWebViewer/p-cad/master/models/" + val.name + "/info.json"
+  //           $.ajax({url: url, success: function(res) {
+  //               modelsInfoDict[val.name] = JSON.parse(res);
+  //               instance.aiModelsInfo.set(modelsInfoDict);
+  //           }});
+  //         }
+  //     });
+  //     instance.aiModelsName.set(nameArr);
+  //     instance.selectedModel.set(nameArr[0]);
+  //     Session.set('selectedModel', nameArr[0]);
+  // }});
 
 });
 
@@ -356,27 +337,27 @@ Template.measurementTableView.helpers({
 
 Template.measurementTableView.events({
   'click .js-getFeedback'(event, instance) {
+    if (!(checkLocations())) {
+        instance.locationNotSelected.set(false);
+        return;
+    }
 
-      if (!(checkLocations())) {
-          instance.locationNotSelected.set(false);
-          return;
-      }
+    instance.locationNotSelected.set(true);
 
-      instance.locationNotSelected.set(true);
+    instance.disableReport.set(true);
+    $('.roundedButtonWrapper[data-value="result"]').removeClass('disabled');
+    Session.set('resultGenerated', true);
+    $('.roundedButtonWrapper[data-value="result"]').click();
+    instance.feedbackActive.set(false);
 
-      instance.disableReport.set(true);
-      $('.roundedButtonWrapper[data-value="result"]').removeClass('disabled');
-      Session.set('resultGenerated', true);
-      $('.roundedButtonWrapper[data-value="result"]').click();
-      instance.feedbackActive.set(false);
+    $('.roundedButtonWrapper[data-value="result"]').on('click', (eve) => {
+        instance.aiModelsActive.set(false);
+        instance.feedbackActive.set(false);
+    });
 
-      $('.roundedButtonWrapper[data-value="result"]').on('click', (eve) => {
-          instance.aiModelsActive.set(false);
-          instance.feedbackActive.set(false);
-      });
-
-      displayFiducials(instance);
-      saveUserData(instance);
+    displayFiducials(instance);
+    displayResult(instance);
+    saveUserData(instance);
   },
 
   'click .js-aiModelName'(event, instance) {

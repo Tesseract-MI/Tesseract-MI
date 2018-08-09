@@ -44,6 +44,7 @@ ohif:metadata
 pirads:core
 tesseract:ai
 tesseract:fiducial
+tesseract:server-probe
 
 clinical:active-entry
 clinical:theming

@@ -89,6 +89,10 @@ export const toolManager = {
             mouse: cornerstoneTools.aiFiducial,
             touch: cornerstoneTools.aiFiducialTouch
         });
+        toolManager.addTool('serverProbe', {
+            mouse: cornerstoneTools.serverProbe,
+            touch: cornerstoneTools.serverProbeTouch
+        });
         toolManager.addTool('pan', {
             mouse: cornerstoneTools.pan,
             touch: cornerstoneTools.panTouchDrag,

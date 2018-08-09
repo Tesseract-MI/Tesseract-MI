@@ -113,6 +113,7 @@ Meteor.startup(function() {
         dragProbe: 'Pixel Probe',
         fiducial: 'Fiducial',
         aiFiducial: 'AI Fiducial',
+        serverProbe: 'Server Probe',
         ellipticalRoi: 'Elliptical ROI',
         rectangleRoi: 'Rectangle ROI',
         magnify: 'Magnify',
