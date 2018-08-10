@@ -14,6 +14,8 @@ UserData = new Mongo.Collection('user_data');
 
 const delay = 1000;
 const selctedToolAfterResult = 'wwwc'
+const clinSigString = 'CSPC';
+const clinInsigString = 'CIPC';
 
 function descriptionMap(seriesDescription) {
     if (seriesDescription.includes('t2_tse_tra')) {
@@ -34,8 +36,13 @@ function isKtrans(seriesDescription) {
     return descriptionMap(seriesDescription) === 'ktrans';
 }
 
+function getImageIndex(seriesDescription, imageId, imagePoint) {
+    const imageIndex = isKtrans(seriesDescription) ? imagePoint.z : cornerstone.metaData.get('series', imageId).numImages - imagePoint.z - 1;
+    return imageIndex;
+}
+
 function addServerProbeToView(ele, val, imagePoint, seriesDescription) {
-    const ClinSigString = (val.ClinSig) ? '(CSPC-' + val.fid + ')' : '(CIPC-' + val.fid + ')';
+    const ClinSigString = (val.ClinSig) ? '(' + clinSigString + '-' + val.fid + ')' : '(' + clinInsigString + '-' + val.fid + ')';
     const measurementData = {
       'id': val.fid + ' ' + ClinSigString,
       'ClinSig': val.ClinSig,
@@ -59,8 +66,7 @@ function addServerProbeToView(ele, val, imagePoint, seriesDescription) {
     OHIF.viewerbase.toolManager.setActiveToolForElement(selctedToolAfterResult, ele);
 }
 
-function displayFiducials(instance) {
-  const fiducials = Fiducials.find({ ProxID: instance.data.studies[0].patientName }).fetch();
+function displayFiducials(fiducials, studyInstanceUid) {
 
   if (!(fiducials.length)) {
       $('#feedback-section').append('<p class="text-bold text-center">No result available for this patient.</p>');
@@ -74,7 +80,7 @@ function displayFiducials(instance) {
 
           fiducials.forEach((val, index) => {
               const imagePoint = val[descriptionMap(seriesDescription)];
-              const imageIndex = isKtrans(seriesDescription) ? imagePoint.z : cornerstone.metaData.get('series', imageId).numImages - imagePoint.z - 1;
+              const imageIndex = getImageIndex(seriesDescription, imageId, imagePoint);
 
               setTimeout(() => {
                 $(ele).one('cornerstonenewimage', () => {
@@ -89,8 +95,7 @@ function displayFiducials(instance) {
   $('#'+selctedToolAfterResult).trigger("click");
 }
 
-function displayResult(instance) {
-    const fiducials = Fiducials.find({ ProxID: instance.data.studies[0].patientName }).fetch();
+function displayResult(fiducials, studyInstanceUid) {
     const ClinSigCounter = fiducials.filter(v => v.ClinSig).length;
     const htmlLineBreak = '<br><br><br><br><br><br><br>'
 
@@ -121,13 +126,12 @@ function displayResult(instance) {
           'reported by pathology.',
           '</p><br>',
           (!('pos' in fiducials[0])) ? '' : '<p class="text-bold">Analysis of your findings:</p>',
-          findingsAnalysis(fiducials, true)
+          findingsAnalysis(fiducials, studyInstanceUid, true)
         ));
     }, (delay * (fiducials.length)) + (2 * delay));
 }
 
-function findingsAnalysis(fiducials, html = false) {
-  const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
+function findingsAnalysis(fiducials, studyInstanceUid, html = false) {
   let str = '';
   let dict = {};
 
@@ -155,7 +159,7 @@ function findingsAnalysis(fiducials, html = false) {
         ' is the closest to ',
         html ? '<span class="text-color-' + serverProbeColor + '">' : '',
         'finding '+ val.fid,
-        (val.ClinSig) ? ' CSPC-' + val.fid : ' CIPC-' + val.fid,
+        (val.ClinSig) ? ' ' + clinSigString + '-' + val.fid : ' ' + clinInsigString + '-' + val.fid,
         html ? '</span>' : '',
         ' with ',
         html ? '<span class="text-color">' : '',
@@ -205,9 +209,7 @@ function makeModelInfoTable() {
     $('#ai-model-info').html(html);
 }
 
-function saveUserData(instance) {
-    const fiducials = Fiducials.find({ ProxID: instance.data.studies[0].patientName }).fetch();
-    const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
+function saveUserData(fiducials, studyInstanceUid) {
 
     fiducialsCollection.find({'studyInstanceUid': studyInstanceUid}).fetch().forEach((value) => {
         let rowId = value.id;
@@ -226,7 +228,7 @@ function saveUserData(instance) {
             dwi: $('#dwi-'+rowId).first().val(),
             dce: $('#dce-'+rowId).first().val(),
             pirads: $('#pirads-'+rowId).first().val(),
-            report: findingsAnalysis(fiducials)[rowId.toString()],
+            report: findingsAnalysis(fiducials, studyInstanceUid)[rowId.toString()],
             comment: $('#comment').first().val(),
             lps: {
               x: value.patientPoint.x,
@@ -280,24 +282,24 @@ Template.measurementTableView.onRendered(() => {
   });
 
   // TODO: github will block the call after 60 calls per hour! come up with a better implementation.
-  // $.ajax({url: "https://api.github.com/repos/ProstateWebViewer/p-cad/contents/models", success: function(result) {
-  //     let nameArr = [];
-  //     let modelsInfoDict = {};
-  //     let url = '';
-  //     result.forEach((val) => {
-  //         if (val.type === 'dir') {
-  //           nameArr.push(val.name);
-  //           url = "https://raw.githubusercontent.com/ProstateWebViewer/p-cad/master/models/" + val.name + "/info.json"
-  //           $.ajax({url: url, success: function(res) {
-  //               modelsInfoDict[val.name] = JSON.parse(res);
-  //               instance.aiModelsInfo.set(modelsInfoDict);
-  //           }});
-  //         }
-  //     });
-  //     instance.aiModelsName.set(nameArr);
-  //     instance.selectedModel.set(nameArr[0]);
-  //     Session.set('selectedModel', nameArr[0]);
-  // }});
+  $.ajax({url: "https://api.github.com/repos/ProstateWebViewer/p-cad/contents/models", success: function(result) {
+      let nameArr = [];
+      let modelsInfoDict = {};
+      let url = '';
+      result.forEach((val) => {
+          if (val.type === 'dir') {
+            nameArr.push(val.name);
+            url = "https://raw.githubusercontent.com/ProstateWebViewer/p-cad/master/models/" + val.name + "/info.json"
+            $.ajax({url: url, success: function(res) {
+                modelsInfoDict[val.name] = JSON.parse(res);
+                instance.aiModelsInfo.set(modelsInfoDict);
+            }});
+          }
+      });
+      instance.aiModelsName.set(nameArr);
+      instance.selectedModel.set(nameArr[0]);
+      Session.set('selectedModel', nameArr[0]);
+  }});
 
 });
 
@@ -362,9 +364,12 @@ Template.measurementTableView.events({
         instance.feedbackActive.set(false);
     });
 
-    displayFiducials(instance);
-    displayResult(instance);
-    saveUserData(instance);
+    const fiducials = Fiducials.find({ ProxID: instance.data.studies[0].patientName }).fetch();
+    const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
+
+    displayFiducials(fiducials, studyInstanceUid);
+    displayResult(fiducials, studyInstanceUid);
+    saveUserData(fiducials, studyInstanceUid);
   },
 
   'click .js-aiModelName'(event, instance) {
