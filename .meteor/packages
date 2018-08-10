@@ -41,7 +41,8 @@ ohif:study-list
 ohif:dicom-services
 ohif:hanging-protocols
 ohif:metadata
-pirads:core
+tesseract:report
+tesseract:sync
 tesseract:ai
 tesseract:fiducial
 tesseract:server-probe

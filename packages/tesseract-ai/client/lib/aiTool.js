@@ -8,20 +8,21 @@ const toolType = 'aiFiducial';
 const openedAiSettings = false;
 
 // Open AI setting when users chooses the AI Probe for the first time
-$('#aiFiducial').waitUntilExists((index, element) => {
-    $(element).click((eve) => {
-        if (!($('.report-btn a:first').hasClass('active')) && !(openedAiSettings)) {
-            $('.report-btn a:first').trigger('click');
-            $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
-                $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
-            });
-            openedAiSettings = true;
-        } else {
-            $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
-                $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
-            });
-        }
-    });
+// TODO: try not to use waitUntilExists
+$('body').on('syncViewports', (event) => {
+  $('#aiFiducial').click((eve) => {
+      if (!($('.report-btn a:first').hasClass('active')) && !(openedAiSettings)) {
+          $('.report-btn a:first').trigger('click');
+          $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
+              $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
+          });
+          openedAiSettings = true;
+      } else {
+          $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
+              $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
+          });
+      }
+  });
 });
 
 function draw (context, fn) {

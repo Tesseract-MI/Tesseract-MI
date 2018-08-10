@@ -1,6 +1,6 @@
 Package.describe({
-    name: 'pirads:core',
-    summary: 'Configuring OHIF for PIRADS Trainer',
+    name: 'tesseract:report',
+    summary: 'Report and setting template for tesseract.',
     version: '1.0.0'
 });
 
@@ -18,5 +18,5 @@ Package.onUse(function(api) {
     api.use('momentjs:moment');
     api.use('validatejs');
 
-    api.addFiles('client/components/index.js', 'client');
+    api.addFiles('client/index.js', 'client');
 });

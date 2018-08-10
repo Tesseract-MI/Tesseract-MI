@@ -1,4 +1,3 @@
-// Measurement Table Components imports
 import './measurementTable.html';
 import './measurementTable.styl';
 import './measurementTable.js';

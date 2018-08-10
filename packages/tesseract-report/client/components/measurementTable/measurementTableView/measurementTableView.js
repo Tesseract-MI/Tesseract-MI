@@ -6,7 +6,6 @@ import { cornerstoneTools } from 'meteor/ohif:cornerstone';
 import { $ } from 'meteor/jquery';
 import { Mongo } from 'meteor/mongo';
 import { Session } from 'meteor/session';
-import '../../../lib/customCommands.js'
 
 AiPredictions = new Mongo.Collection('aiPredictions', {connection: null});
 fiducialsCollection = new Mongo.Collection('fiducialsCollection', { connection: null });
@@ -14,6 +13,7 @@ Fiducials = new Mongo.Collection('fiducials');
 UserData = new Mongo.Collection('user_data');
 
 const delay = 1000;
+const selctedToolAfterResult = 'wwwc'
 
 function descriptionMap(seriesDescription) {
     if (seriesDescription.includes('t2_tse_tra')) {
@@ -34,7 +34,7 @@ function isKtrans(seriesDescription) {
     return descriptionMap(seriesDescription) === 'ktrans';
 }
 
-function addServerProbe(ele, val, imagePoint, seriesDescription) {
+function addServerProbeToView(ele, val, imagePoint, seriesDescription) {
     const ClinSigString = (val.ClinSig) ? '(CSPC-' + val.fid + ')' : '(CIPC-' + val.fid + ')';
     const measurementData = {
       'id': val.fid + ' ' + ClinSigString,
@@ -56,6 +56,7 @@ function addServerProbe(ele, val, imagePoint, seriesDescription) {
     OHIF.viewerbase.toolManager.setActiveToolForElement('serverProbe', ele);
     cornerstoneTools.addToolState(ele, 'serverProbe', measurementData);
     cornerstone.updateImage(ele);
+    OHIF.viewerbase.toolManager.setActiveToolForElement(selctedToolAfterResult, ele);
 }
 
 function displayFiducials(instance) {
@@ -77,7 +78,7 @@ function displayFiducials(instance) {
 
               setTimeout(() => {
                 $(ele).one('cornerstonenewimage', () => {
-                    addServerProbe(ele, val, imagePoint, seriesDescription);
+                    addServerProbeToView(ele, val, imagePoint, seriesDescription);
                 });
                 cornerstoneTools.scrollToIndex(ele, imageIndex);
               }, delay * (index + 1));
@@ -85,7 +86,7 @@ function displayFiducials(instance) {
       });
   }
 
-  $('#wwwc').trigger("click");
+  $('#'+selctedToolAfterResult).trigger("click");
 }
 
 function displayResult(instance) {
@@ -120,8 +121,8 @@ function displayResult(instance) {
           'reported by pathology.',
           '</p><br>',
           (!('pos' in fiducials[0])) ? '' : '<p class="text-bold">Analysis of your findings:</p>',
-          findingsAnalysis(fiducials, true))
-      );
+          findingsAnalysis(fiducials, true)
+        ));
     }, (delay * (fiducials.length)) + (2 * delay));
 }
 
@@ -225,7 +226,8 @@ function saveUserData(instance) {
             dwi: $('#dwi-'+rowId).first().val(),
             dce: $('#dce-'+rowId).first().val(),
             pirads: $('#pirads-'+rowId).first().val(),
-            report: findingsAnalysis(fiducials, studyInstanceUid)[rowId.toString()],
+            report: findingsAnalysis(fiducials)[rowId.toString()],
+            comment: $('#comment').first().val(),
             lps: {
               x: value.patientPoint.x,
               y: value.patientPoint.y,
@@ -277,6 +279,7 @@ Template.measurementTableView.onRendered(() => {
       instance.aiModelsActive.set(false);
   });
 
+  // TODO: github will block the call after 60 calls per hour! come up with a better implementation.
   // $.ajax({url: "https://api.github.com/repos/ProstateWebViewer/p-cad/contents/models", success: function(result) {
   //     let nameArr = [];
   //     let modelsInfoDict = {};
@@ -319,6 +322,10 @@ Template.measurementTableView.helpers({
 
   isFeedbackActive() {
     return Template.instance().feedbackActive.get();
+  },
+
+  isResultActive() {
+    return !(Template.instance().feedbackActive.get() || Template.instance().aiModelsActive.get());
   },
 
   isReportDisabled() {

@@ -44,66 +44,55 @@ function openSidebarOnFindings() {
   }
 }
 
-// TODO: clean and comment for all the functions
 function addFiducial(element, measurementData, toolType) {
+  const fid = fiducialsCollection.find({'id': measurementData.id}).fetch();
 
-  const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
-  const studyInstanceUidString = studyInstanceUid.toString();
-  const patientPoint = getPatientPoint(measurementData.handles.end, element);
-  let imageIds = [];
+  if (!(fid.length)) {
+    const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
+    const studyInstanceUidString = studyInstanceUid.toString();
+    const patientPoint = getPatientPoint(measurementData.handles.end, element);
+    let imageIds = [];
 
-  openSidebarOnFindings();
+    openSidebarOnFindings();
 
-  $('.imageViewerViewport').each((index, ele) => {
-    if (ele !== element) {
-      try {
-          cornerstone.getEnabledElement(ele);
-          const imagePoint = getImagePoint(patientPoint, ele);
-          let elementSpecificMeasurementData = $.extend(true, {}, measurementData);
-          elementSpecificMeasurementData.handles.end.x = imagePoint.x;
-          elementSpecificMeasurementData.handles.end.y = imagePoint.y;
+    $('.imageViewerViewport').each((index, ele) => {
+      if (ele !== element) {
+        try {
+            cornerstone.getEnabledElement(ele);
+            const imagePoint = getImagePoint(patientPoint, ele);
+            let elementSpecificMeasurementData = $.extend(true, {}, measurementData);
+            elementSpecificMeasurementData.handles.end.x = imagePoint.x;
+            elementSpecificMeasurementData.handles.end.y = imagePoint.y;
 
-          if (!(isInBoundary(ele, elementSpecificMeasurementData.handles.end))) {
-            elementSpecificMeasurementData.visible = false;
-          }
+            if (!(isInBoundary(ele, elementSpecificMeasurementData.handles.end))) {
+              elementSpecificMeasurementData.visible = false;
+            }
 
-          $(ele).off('cornerstonetoolsmeasurementadded');
-          cornerstoneTools.addToolState(ele, toolType, elementSpecificMeasurementData);
-          cornerstone.updateImage(ele);
-          bindToMeasurementAdded(ele);
-          imageIds.push(cornerstone.getEnabledElement(ele).image.imageId);
+            $(ele).off('cornerstonetoolsmeasurementadded');
+            cornerstoneTools.addToolState(ele, toolType, elementSpecificMeasurementData);
+            cornerstone.updateImage(ele);
+            bindToMeasurementAdded(ele);
+            imageIds.push(cornerstone.getEnabledElement(ele).image.imageId);
 
-      } catch (error) {
-          return;
+        } catch (error) {
+            return;
+        }
       }
+    });
+
+    Session.set('lastFidId', measurementData.id);
+    let fiducial = {
+      'toolType': measurementData.toolType,
+      'id': measurementData.id,
+      'studyInstanceUid': studyInstanceUid,
+      'imageIds': imageIds,
+      'patientPoint': patientPoint
     }
-  });
-
-  Session.set('lastFidId', measurementData.id);
-  let fiducial = {
-    'toolType': measurementData.toolType,
-    'id': measurementData.id,
-    'studyInstanceUid': studyInstanceUid,
-    'imageIds': imageIds,
-    'patientPoint': patientPoint
-  }
-
-  fiducialsCollection.insert(fiducial);
-}
 
 
-function descriptionMap(seriesDescription) {
-  if (seriesDescription.includes('t2_tse_tra')) {
-    return 'tra';
-  } else if (seriesDescription.includes('_ADC')) {
-    return 'adc';
-  } else if (seriesDescription.includes('_BVAL')) {
-    return 'hbval';
-  } else if (seriesDescription.includes('KTrans')) {
-    return 'ktrans';
+      fiducialsCollection.insert(fiducial);
   }
 }
-
 
 function removeFiducial(element, measurementData, toolType) {
   if (measurementData.hasOwnProperty('id')) {
@@ -123,7 +112,6 @@ function removeFiducial(element, measurementData, toolType) {
     });
   }
 }
-
 
 function modifyFiducial(element, measurementData, toolType) {
   const patientPoint = getPatientPoint(measurementData.handles.end, element);
@@ -154,13 +142,8 @@ function modifyFiducial(element, measurementData, toolType) {
     'patientPoint': patientPoint
   }
 
-  fiducialsCollection.update({
-    'id': measurementData.id
-  }, {
-    $set: fiducial
-  });
+  fiducialsCollection.update({'id': measurementData.id}, {$set: fiducial});
 }
-
 
 function bindToMeasurementAdded(element) {
   $(element).on('cornerstonetoolsmeasurementadded', (eve) => {
@@ -171,7 +154,6 @@ function bindToMeasurementAdded(element) {
   });
 }
 
-
 function bindToMeasurementRemoved(element) {
   $(element).on('cornerstonemeasurementremoved', (eve) => {
     let ev = eve.originalEvent;
@@ -180,7 +162,6 @@ function bindToMeasurementRemoved(element) {
     }
   });
 }
-
 
 function bindToMeasurementModified(element) {
   $(element).on('cornerstonetoolsmeasurementmodified', (eve) => {
@@ -191,7 +172,6 @@ function bindToMeasurementModified(element) {
   });
 }
 
-
 $('body').on('setActiveViewport', (event) => {
   $('.imageViewerViewport').each((index, element) => {
     bindToMeasurementAdded(element);
@@ -199,7 +179,6 @@ $('body').on('setActiveViewport', (event) => {
     bindToMeasurementModified(element);
   });
 });
-
 
 $('body').on('syncViewports', (event) => {
   const activeTool = OHIF.viewerbase.toolManager.getActiveTool();
@@ -237,3 +216,5 @@ $('body').on('syncViewports', (event) => {
     probeSynchronizer.destroy();
   }
 });
+
+export { sync };
