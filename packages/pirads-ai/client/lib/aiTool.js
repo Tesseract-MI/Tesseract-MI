@@ -5,10 +5,17 @@ import { Session } from 'meteor/session';
 import { $ } from 'meteor/jquery';
 import { waitUntilExists } from 'jquery.waituntilexists';
 
+Session.set('opendAiSettings', false);
+
 $('#aiFiducial').waitUntilExists((index, element) => {
     $(element).click((eve) => {
-        if (!($('.report-btn a:first').hasClass('active'))) {
+        if (!($('.report-btn a:first').hasClass('active')) && !(Session.get('opendAiSettings'))) {
             $('.report-btn a:first').trigger('click');
+            $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
+                $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
+            });
+            Session.set('opendAiSettings', true);
+        } else {
             $('.roundedButtonWrapper[data-value="findings"].active').waitUntilExists(() => {
                 $('.roundedButtonWrapper[data-value="aiModel"]').trigger('click');
             });
@@ -21,8 +28,20 @@ const toolType = 'aiFiducial';
 const createDialog = (eventData, measurementData) => {
 
     const nearbyToolData = {};
+    const modelWithZone = Session.get('modelWithZone');
+    const position = {
+        x: eventData.event.clientX+155,
+        y: eventData.event.clientY+140
+    }
     nearbyToolData.toolType = toolType;
     nearbyToolData.tool = measurementData;
+
+    if (modelWithZone) {
+      position = {
+          x: eventData.event.clientX+155,
+          y: eventData.event.clientY+190
+      }
+    }
 
     const dialogSettings = {
         removeCloseButton: true,
@@ -32,10 +51,7 @@ const createDialog = (eventData, measurementData) => {
         confirmClass: 'btn-success',
         cancelClass: 'btn-danger',
         dialogClass: 'modal-sm',
-        position: {
-            x: eventData.event.clientX+155,
-            y: eventData.event.clientY+130
-        }
+        position: position
     };
 
     Session.set('nearbyToolData', nearbyToolData);

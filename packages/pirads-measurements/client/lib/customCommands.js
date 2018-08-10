@@ -2,6 +2,7 @@ import { Mongo } from 'meteor/mongo';
 import { cornerstoneTools, cornerstone } from 'meteor/ohif:cornerstone';
 import { $ } from 'meteor/jquery';
 import { waitUntilExists } from 'jquery.waituntilexists';
+import { Session } from 'meteor/session';
 
 
 fiducialsCollection = new Mongo.Collection('fiducialsCollection', {connection: null});
@@ -14,7 +15,11 @@ function getPatientPoint(imagePoint, element) {
     const image = cornerstone.getEnabledElement(element).image;
     const imagePlane = cornerstone.metaData.get('imagePlaneModule', image.imageId);
 
-    return cornerstoneTools.imagePointToPatientPoint(imagePoint, imagePlane);
+    const result = cornerstoneTools.imagePointToPatientPoint(imagePoint, imagePlane);
+
+    Session.set('currentFidLps', result);
+
+    return result;
 }
 
 
@@ -143,7 +148,9 @@ function addFiducial(element, measurementData, toolType) {
     });
 
     if (!measurementData.hasOwnProperty('server')) {
+        Session.set('lastFidId', fiducialCounter[studyInstanceUidString]);
         let fiducial = {
+          'toolType': toolType,
           'id': fiducialCounter[studyInstanceUidString],
           'studyInstanceUid': studyInstanceUid,
           'imageIds': imageIds,
