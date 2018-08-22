@@ -26,27 +26,27 @@
             </div>
         {{/if}}
     {{/if}}
-    {{#if isAiModelActive}}
-      <div id="ai-section">
-        <hr style="margin-top:0;">
-        <form>
-            <div class="form-group">
-                <label for="ai-models">Available Models</label>
-                <select class="form-control ai-models js-aiModelName js-option" id="aiModelName">
-                    {{#each name in aiModelsName}}
-                        <option>{{ name }}</option>
-                    {{/each}}
-                </select>
-            </div>
-        </form>
+
+    <div id="ai-section" class="{{#if not isAiModelActive}}hidden{{/if}}">
+      <hr style="margin-top:0;">
+      <form>
+          <div class="form-group">
+              <label class="form-label" for="ai-models">Available Models</label>
+              <select class="form-control ai-models js-aiModelName js-option" id="aiModelName">
+                  {{#each name in aiModelsName}}
+                      <option>{{ name }}</option>
+                  {{/each}}
+              </select>
+          </div>
+      </form>
+      <br>
+      <div class="{{#if not getNote}}hidden{{/if}}">
+        <p class="table-title">Note: <span class="note">{{getNote}}</span></p>
         <br>
-        <div class="{{#if not getNote}}hidden{{/if}}">
-          <p class="table-title">Note: <span class="note">{{getNote}}</span></p>
-          <br>
-        </div>
-        <p class="table-title">Model Specifications</p>
-        <div id="ai-model-info"></div>
       </div>
-    {{/if}}
+      <p class="table-title">Model Specifications</p>
+      <div id="ai-model-info"></div>
+    </div>
+
     <div id="snackbar">Model Selected</div>
 </template>
