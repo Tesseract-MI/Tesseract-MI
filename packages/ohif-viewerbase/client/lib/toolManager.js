@@ -143,6 +143,11 @@ export const toolManager = {
             touch: cornerstoneTools.crosshairsTouch
         });
 
+        toolManager.addTool('scrollSync', {
+            mouse: cornerstoneTools.scrollSync,
+            touch: cornerstoneTools.scrollSyncTouch
+        });
+
         // if a default tool is globally defined, make it the default tool...
         if (OHIF.viewer.defaultTool) {
             defaultTool.left = OHIF.viewer.defaultTool;

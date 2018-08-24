@@ -42,7 +42,8 @@ ohif:dicom-services
 ohif:hanging-protocols
 ohif:metadata
 tesseract:report
-tesseract:sync
+tesseract:sync-tools
+tesseract:sync-scroll
 tesseract:ai
 tesseract:fiducial
 tesseract:server-probe

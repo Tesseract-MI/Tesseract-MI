@@ -1,6 +1,6 @@
 Package.describe({
-    name: 'tesseract:sync',
-    summary: 'Tesseract sync functionality for ',
+    name: 'tesseract:sync-tools',
+    summary: 'Tesseract sync functionality',
     version: '1.0.0'
 });
 
