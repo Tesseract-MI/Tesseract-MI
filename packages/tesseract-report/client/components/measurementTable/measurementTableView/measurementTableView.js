@@ -99,6 +99,11 @@ function displayResult(fiducials, studyInstanceUid) {
     const ClinSigCounter = fiducials.filter(v => v.ClinSig).length;
     const htmlLineBreak = '<br><br><br><br><br><br><br>'
 
+    if(!(fiducials[0])) {
+      $('#feedback-section').html(htmlLineBreak + '<p class="text-bold text-center">No data available for this study.</p>')
+      return;
+    }
+
     $('#feedback-section').html(htmlLineBreak + '<p class="text-bold text-center">Fetching data from the server...</p>')
 
     setTimeout(() => {
