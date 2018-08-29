@@ -2,7 +2,7 @@ import { Meteor } from 'meteor/meteor';
 import { Template } from 'meteor/templating';
 import { ReactiveVar } from 'meteor/reactive-var';
 import { OHIF } from 'meteor/ohif:core';
-import { cornerstoneTools } from 'meteor/ohif:cornerstone';
+import { cornerstoneTools, cornerstoneMath } from 'meteor/ohif:cornerstone';
 import { $ } from 'meteor/jquery';
 import { Mongo } from 'meteor/mongo';
 import { Session } from 'meteor/session';
@@ -32,13 +32,37 @@ function descriptionMap(seriesDescription) {
     }
 }
 
-function isKtrans(seriesDescription) {
-    return descriptionMap(seriesDescription) === 'ktrans';
+function convertToVector3(arrayOrVector3) {
+  if (arrayOrVector3 instanceof cornerstoneMath.Vector3) {
+    return arrayOrVector3;
+  }
+
+  return new cornerstoneMath.Vector3(arrayOrVector3[0], arrayOrVector3[1], arrayOrVector3[2]);
 }
 
-function getImageIndex(seriesDescription, imageId, imagePoint) {
-    const imageIndex = isKtrans(seriesDescription) ? imagePoint.z : cornerstone.metaData.get('series', imageId).numImages - imagePoint.z - 1;
-    return imageIndex;
+function getImageIndex(seriesDescription, imageId, imagePoint, targetElement) {
+
+    const stackToolDataSource = cornerstoneTools.getToolState(targetElement, 'stack');
+    const stackData = stackToolDataSource.data[0];
+    let minDistance = Number.MAX_VALUE;
+    let newImageIdIndex = -1;
+
+    // Find within the element's stack the closest image plane to selected location
+    stackData.imageIds.forEach(function (imageId, index) {
+      const imagePlane = cornerstone.metaData.get('imagePlaneModule', imageId);
+      const imagePosition = convertToVector3(imagePlane.imagePositionPatient);
+      const row = convertToVector3(imagePlane.rowCosines);
+      const column = convertToVector3(imagePlane.columnCosines);
+      const normal = column.clone().cross(row.clone());
+      const distance = Math.abs(normal.clone().dot(imagePosition) - normal.clone().dot(imagePoint));
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        newImageIdIndex = index;
+      }
+    });
+
+    return newImageIdIndex;
 }
 
 function addServerProbeToView(ele, val, imagePoint, seriesDescription) {
@@ -80,7 +104,7 @@ function displayFiducials(fiducials, studyInstanceUid) {
 
           fiducials.forEach((val, index) => {
               const imagePoint = val[descriptionMap(seriesDescription)];
-              const imageIndex = getImageIndex(seriesDescription, imageId, imagePoint);
+              const imageIndex = getImageIndex(seriesDescription, imageId, val['pos'], ele);
 
               setTimeout(() => {
                 $(ele).one('cornerstonenewimage', () => {
