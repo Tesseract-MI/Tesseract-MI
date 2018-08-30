@@ -40,21 +40,20 @@ function convertToVector3(arrayOrVector3) {
   return new cornerstoneMath.Vector3(arrayOrVector3[0], arrayOrVector3[1], arrayOrVector3[2]);
 }
 
-function getImageIndex(seriesDescription, imageId, imagePoint, targetElement) {
+function getImageIndex(patientPoint, targetElement) {
 
     const stackToolDataSource = cornerstoneTools.getToolState(targetElement, 'stack');
     const stackData = stackToolDataSource.data[0];
     let minDistance = Number.MAX_VALUE;
     let newImageIdIndex = -1;
 
-    // Find within the element's stack the closest image plane to selected location
     stackData.imageIds.forEach(function (imageId, index) {
       const imagePlane = cornerstone.metaData.get('imagePlaneModule', imageId);
       const imagePosition = convertToVector3(imagePlane.imagePositionPatient);
       const row = convertToVector3(imagePlane.rowCosines);
       const column = convertToVector3(imagePlane.columnCosines);
       const normal = column.clone().cross(row.clone());
-      const distance = Math.abs(normal.clone().dot(imagePosition) - normal.clone().dot(imagePoint));
+      const distance = Math.abs(normal.clone().dot(imagePosition) - normal.clone().dot(patientPoint));
 
       if (distance < minDistance) {
         minDistance = distance;
@@ -65,7 +64,8 @@ function getImageIndex(seriesDescription, imageId, imagePoint, targetElement) {
     return newImageIdIndex;
 }
 
-function addServerProbeToView(ele, val, imagePoint, seriesDescription) {
+function addServerProbeToView(ele, val) {
+    const imagePoint = val[descriptionMap(cornerstone.metaData.get('series', cornerstone.getEnabledElement(ele).image.imageId)['seriesDescription'])];
     const ClinSigString = (val.ClinSig) ? '(' + clinSigString + '-' + val.fid + ')' : '(' + clinInsigString + '-' + val.fid + ')';
     const measurementData = {
       'id': val.fid + ' ' + ClinSigString,
@@ -90,27 +90,15 @@ function addServerProbeToView(ele, val, imagePoint, seriesDescription) {
     OHIF.viewerbase.toolManager.setActiveToolForElement(selctedToolAfterResult, ele);
 }
 
-function displayFiducials(fiducials, studyInstanceUid) {
-
-  if (!(fiducials.length)) {
-      $('#feedback-section').append('<p class="text-bold text-center">No result available for this patient.</p>');
-      return;
-  }
-
+function displayFiducials(fiducials) {
   if ('pos' in fiducials[0]) {
-      $('.imageViewerViewport').each((ind, ele) => {
-          const imageId = cornerstone.getEnabledElement(ele).image.imageId;
-          const seriesDescription = cornerstone.metaData.get('series', imageId)['seriesDescription'];
-
-          fiducials.forEach((val, index) => {
-              const imagePoint = val[descriptionMap(seriesDescription)];
-              const imageIndex = getImageIndex(seriesDescription, imageId, val['pos'], ele);
-
+      fiducials.forEach((val, index) => {
+        $('.imageViewerViewport').each((ind, ele) => {
               setTimeout(() => {
                 $(ele).one('cornerstonenewimage', () => {
-                    addServerProbeToView(ele, val, imagePoint, seriesDescription);
+                    addServerProbeToView(ele, val);
                 });
-                cornerstoneTools.scrollToIndex(ele, imageIndex);
+                cornerstoneTools.scrollToIndex(ele, getImageIndex(val['pos'], ele));
               }, delay * (index + 1));
           });
       });
@@ -124,7 +112,7 @@ function displayResult(fiducials, studyInstanceUid) {
     const htmlLineBreak = '<br><br><br><br><br><br><br>'
 
     if(!(fiducials[0])) {
-      $('#feedback-section').html(htmlLineBreak + '<p class="text-bold text-center">No data available for this study.</p>')
+      $('#feedback-section').html(htmlLineBreak + '<p class="text-bold text-center">No result available for this patient.</p>')
       return;
     }
 
@@ -396,7 +384,7 @@ Template.measurementTableView.events({
     const fiducials = Fiducials.find({ ProxID: instance.data.studies[0].patientName }).fetch();
     const studyInstanceUid = OHIF.viewerbase.layoutManager.viewportData[Session.get('activeViewport')]['studyInstanceUid'];
 
-    displayFiducials(fiducials, studyInstanceUid);
+    displayFiducials(fiducials);
     displayResult(fiducials, studyInstanceUid);
     saveUserData(fiducials, studyInstanceUid);
   },
@@ -418,6 +406,4 @@ Template.measurementTableView.events({
     let snackbar = $('#snackbar').addClass('show');
     setTimeout(() => { snackbar.removeClass('show'); }, 3000);
   },
-
-
 });
