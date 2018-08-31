@@ -13,7 +13,7 @@ Fiducials = new Mongo.Collection('fiducials');
 UserData = new Mongo.Collection('user_data');
 
 const delay = 1000;
-const selctedToolAfterResult = 'wwwc'
+const selctedToolAfterResult = 'wwwc';
 const clinSigString = 'CSPC';
 const clinInsigString = 'CIPC';
 
@@ -65,7 +65,9 @@ function getImageIndex(patientPoint, targetElement) {
 }
 
 function addServerProbeToView(ele, val) {
-    const imagePoint = val[descriptionMap(cornerstone.metaData.get('series', cornerstone.getEnabledElement(ele).image.imageId)['seriesDescription'])];
+    const imageId = cornerstone.getEnabledElement(ele).image.imageId;
+    const seriesDescription = cornerstone.metaData.get('series', imageId)['seriesDescription'];
+    const imagePoint = val[descriptionMap(seriesDescription)];
     const ClinSigString = (val.ClinSig) ? '(' + clinSigString + '-' + val.fid + ')' : '(' + clinInsigString + '-' + val.fid + ')';
     const measurementData = {
       'id': val.fid + ' ' + ClinSigString,
@@ -91,7 +93,7 @@ function addServerProbeToView(ele, val) {
 }
 
 function displayFiducials(fiducials) {
-  if ('pos' in fiducials[0]) {
+  if (fiducials[0] && 'pos' in fiducials[0]) {
       fiducials.forEach((val, index) => {
         $('.imageViewerViewport').each((ind, ele) => {
               setTimeout(() => {
