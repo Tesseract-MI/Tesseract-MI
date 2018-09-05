@@ -1,5 +1,5 @@
 Package.describe({
-    name: 'tesseract:cancer-study',
+    name: 'tesseract:report',
     summary: 'Report and setting template for tesseract.',
     version: '1.0.0'
 });

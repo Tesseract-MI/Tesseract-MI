@@ -12,7 +12,7 @@ fiducialsCollection = new Mongo.Collection('fiducialsCollection', { connection: 
 Fiducials = new Mongo.Collection('fiducials');
 UserData = new Mongo.Collection('user_data');
 
-const delay = 1000;
+const delay = 1500;
 const selctedToolAfterResult = 'wwwc';
 const clinSigString = 'CSPC';
 const clinInsigString = 'CIPC';
