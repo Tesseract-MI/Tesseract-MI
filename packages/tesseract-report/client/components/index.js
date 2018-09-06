@@ -1,2 +1,1 @@
 import './measurementTable';
-import './prostate';

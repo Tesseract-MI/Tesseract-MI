@@ -12,25 +12,13 @@ fiducialsCollection = new Mongo.Collection('fiducialsCollection', { connection: 
 Fiducials = new Mongo.Collection('fiducials');
 UserData = new Mongo.Collection('user_data');
 
-const delay = 1000;
-const selctedToolAfterResult = 'wwwc';
-const clinSigString = 'CSPC';
-const clinInsigString = 'CIPC';
-
-function descriptionMap(seriesDescription) {
-    if (seriesDescription.includes('t2_tse_tra')) {
-        return 'tra';
-    }
-    else if (seriesDescription.includes('_ADC')) {
-        return 'adc';
-    }
-    else if (seriesDescription.includes('_BVAL')) {
-        return 'hbval';
-    }
-    else if (seriesDescription.includes('KTrans')) {
-        return 'ktrans';
-    }
-}
+const {
+  delay,
+  selctedToolAfterResult,
+  clinSigString,
+  clinInsigString,
+  descriptionMap
+} = OHIF.tesseract.settings;
 
 function convertToVector3(arrayOrVector3) {
   if (arrayOrVector3 instanceof cornerstoneMath.Vector3) {

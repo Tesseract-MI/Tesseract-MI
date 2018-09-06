@@ -47,6 +47,7 @@ tesseract:sync-scroll
 tesseract:ai
 tesseract:fiducial
 tesseract:server-probe
+tesseract:cancer-study
 
 clinical:active-entry
 clinical:theming
