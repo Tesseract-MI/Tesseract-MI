@@ -82,8 +82,8 @@ function addServerProbeToView(ele, val) {
 
 function displayFiducials(fiducials) {
   if (fiducials[0] && 'pos' in fiducials[0]) {
-      fiducials.forEach((val, index) => {
-        $('.imageViewerViewport').each((ind, ele) => {
+      $('.imageViewerViewport').each((ind, ele) => {
+        fiducials.forEach((val, index) => {
               setTimeout(() => {
                 $(ele).one('cornerstonenewimage', () => {
                     addServerProbeToView(ele, val);
