@@ -57,7 +57,7 @@ A replaceable package to add different cancer studies to the app.
 **tesseract-sync-tools**:
 A tool to sync tools like probe or any other drawing tool.
 
-Deplouing to Production VPS
+Deploying to Production VPS
 ---------
 You need app specific files on App's root directory for deploying to server:
 
