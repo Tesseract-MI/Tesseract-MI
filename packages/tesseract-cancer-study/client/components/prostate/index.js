@@ -1,2 +1,0 @@
-import './rowOption';
-import './settings';
