@@ -4,7 +4,7 @@ Tesseract-MedicalImaging (Tesseract-MI) is an open-source, web-based platform wh
 
 ## This project will not run without a study and AI model
 
-Please checkout [prostatecancer.ai](https://github.com/Tesseract-MI/prostatecancer.ai) project to how to add cancer studies and AI models.
+Please checkout [prostatecancer.ai](https://github.com/Tesseract-MI/prostatecancer.ai) project to learn how to add cancer studies and AI models.
 
 
 Installation
