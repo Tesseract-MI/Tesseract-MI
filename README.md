@@ -61,6 +61,19 @@ A replaceable package to add different cancer studies to the app.
 **tesseract-sync-tools**:
 A tool to sync tools like probe or any other drawing tool.
 
+
+AI model Deployment: 
+---------- 
+Models folder include different models and their codes. “pcad.py” is the Flask app which serves predictions with the selected Keras model. By default, one of the available models is loaded and ready to use by the user.
+
+Specification for each model:
+Each AI model folder needs to have a python class called deploy which is consisted of a build and run methods. By decoupling the model build and model run, fast prediction time is guaranteed. 
+
+1. **Build**: once called, the model architecture is built and the saved weights will be loaded. 
+2. **Run(model, info)**: contains the code and the designed algorithm, including preprocessing, prediction and post processing. Info is json file containing the case_number(id) and the desired location specified by the user in the Viewer which was sent to the Flask app (in LPS)
+
+
+
 Deploying to Production VPS
 ---------
 You need app specific files on App's root directory for deploying to server:
