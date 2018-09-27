@@ -1,4 +1,4 @@
-# Tesseract
+# Tesseract-MI
 
 Tesseract-MedicalImaging (Tesseract-MI) is an open-source, web-based platform which enables deployment of AI models while simultaneously providing standard image viewing and reporting schemes. The goal of Tesseract-MI is to augment 3D medical imaging and provide a 4th dimension (AI) when requested by a user. Tesseract-MI platform consists of an image viewer, a  DICOM server, a reporting UI, and AI-assisted probe for on-demand processing of findings.
 
